@@ -1,0 +1,35 @@
+@keyframes OverlayfadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 50;
+  }
+}
+
+@keyframes OverlayfadeOut {
+  from {
+    opacity: 50;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes ModalContentfadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 100;
+  }
+}
+
+@keyframes ModalContentfadeOut {
+  from {
+    opacity: 100;
+  }
+  to {
+    opacity: 0;
+  }
+}

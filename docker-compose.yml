@@ -1,0 +1,116 @@
+version: "3.8"
+
+services:
+  mysqldb:
+    image: mysql:8.3
+    restart: unless-stopped
+    env_file: ./.env
+    command: --default-authentication-plugin=mysql_native_password --bind-address=0.0.0.0
+    environment:
+      - MYSQL_ROOT_PASSWORD=$MYSQLDB_ROOT_PASSWORD
+      - MYSQL_DATABASE=$MYSQLDB_DATABASE
+    ports:
+      - $MYSQLDB_LOCAL_PORT:$MYSQLDB_DOCKER_PORT
+    volumes:
+      - db:/var/lib/mysql
+    networks:
+      - backend
+
+  skinx-api:
+    depends_on:
+      - mysqldb
+    build:
+      context: ./Backend
+    restart: unless-stopped
+    env_file: ./.env
+    ports:
+      - $NODE_LOCAL_PORT:$NODE_DOCKER_PORT
+    environment:
+      - MYSQLDB_HOST=mysqldb
+      - MYSQLDB_DIALECT=mysql
+      - MYSQLDB_USER=$MYSQLDB_USER
+      - MYSQLDB_PASSWORD=$MYSQLDB_ROOT_PASSWORD
+      - MYSQLDB_DATABASE=$MYSQLDB_DATABASE
+      - MYSQLDB_PORT=$MYSQLDB_DOCKER_PORT
+      - JWT_ACCESS_SECRET=$JWT_ACCESS_SECRET
+      - JWT_ACCESS_EXPIRE=$JWT_ACCESS_EXPIRE
+      - JWT_REFRESH_SECRET=$JWT_REFRESH_SECRET
+      - JWT_REFRESH_EXPIRE=$JWT_REFRESH_EXPIRE
+      - CLIENT_ORIGIN=$CLIENT_ORIGIN
+    networks:
+      - backend
+      - frontend
+
+  skinx-front:
+    depends_on:
+      - skinx-api
+    build:
+      context: ./Frontend
+      args:
+        - VITE_APP_API_BASE_URL=$CLIENT_API_BASE_URL
+    ports:
+      - $VITE_LOCAL_PORT:$VITE_DOCKER_PORT
+    networks:
+      - frontend
+
+  migration:
+    build:
+      context: ./Backend
+    command:
+      [
+        "./wait-for-it/wait-for-it.sh",
+        "mysqldb:$MYSQLDB_DOCKER_PORT",
+        "--",
+        "npm",
+        "run",
+        "migrate",
+      ]
+    links:
+      - mysqldb
+    depends_on:
+      - mysqldb
+    env_file: ./.env
+    environment:
+      - MYSQLDB_HOST=mysqldb
+      - MYSQLDB_DIALECT=mysql
+      - MYSQLDB_USER=$MYSQLDB_USER
+      - MYSQLDB_PASSWORD=$MYSQLDB_ROOT_PASSWORD
+      - MYSQLDB_DATABASE=$MYSQLDB_DATABASE
+      - MYSQLDB_PORT=$MYSQLDB_DOCKER_PORT
+    networks:
+      - backend
+
+  seed:
+    build:
+      context: ./Backend
+    command:
+      [
+        "./wait-for-it/wait-for-it.sh",
+        "mysqldb:$MYSQLDB_DOCKER_PORT",
+        "--",
+        "npm",
+        "run",
+        "seed",
+      ]
+    links:
+      - mysqldb
+    depends_on:
+      - mysqldb
+    env_file: ./.env
+    environment:
+      - MYSQLDB_HOST=mysqldb
+      - MYSQLDB_DIALECT=mysql
+      - MYSQLDB_USER=$MYSQLDB_USER
+      - MYSQLDB_PASSWORD=$MYSQLDB_ROOT_PASSWORD
+      - MYSQLDB_DATABASE=$MYSQLDB_DATABASE
+      - MYSQLDB_PORT=$MYSQLDB_DOCKER_PORT
+    networks:
+      - backend
+
+volumes:
+  db:
+
+networks:
+  backend:
+    driver: bridge
+  frontend:

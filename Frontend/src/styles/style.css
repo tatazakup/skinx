@@ -1,0 +1,7 @@
+@import "base.css";
+@import "animation.css";
+@tailwind components;
+@tailwind utilities;
+
+@layer utilities {
+}
